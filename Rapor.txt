@@ -1,0 +1,12 @@
+Farklı dinamik bellek tahsis stratejilerinin external fragmentation performansı üzerine bir değerlendirme yaparsak;
+
+First Fit stratejisi genellikle hızlı olsa da, büyük blokların küçük boşluklara yerleştirilmesi nedeniyle external fragmentation'ı artırabilir.
+
+Best Fit stratejisi,external fragmentation'ı azaltır ancak blokları aramak için daha fazla zaman gerektirebilir, bu da performansı etkileyebilir.
+
+Worst Fit stratejisi büyük boşlukları kullanarak external fragmentation'ı artırabilir.
+
+Adres sırasına göre sıralı strateji genellikle LIFO stratejisine göre daha az external fragmentation sağlar. Adres sırasına göre sıralı strateji, boşlukları daha etkin bir şekilde yöneterek daha az boşluk bırakır. LIFO stratejisi ise bazen büyük blokların küçük blokların önünde kuyruğa girmesiyle daha fazla boşluk bırakabilir, bu da external fragmentation'a neden olabilir.
+
+Sonuç olarak, uygulamanın gereksinimlerine göre en uygun stratejinin seçilmesi önemlidir.
+
