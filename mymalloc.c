@@ -1,68 +1,192 @@
 #include "mymalloc.h"
-
 #include <stdio.h>
+#include <unistd.h>
 
-/** finds a block based on strategy,
- * if necessary it splits the block,
- * allocates memory,
- * returns the start addrees of data[]*/
+Block *heap_genislet(size_t boyut);
+
+int main() {
+    int input;
+    printf("KullanÄ±cÄ± input'u: ");
+    scanf("%d",&input);
+    heap_genislet(input);
+    printheap();
+    return 0;
+}
+
+
+/* Boyutu en yakin 16 nin katina yuvarla */
+size_t yuvarla(size_t boyut) {
+    return (boyut + 15) & ~15;
+}
+
+
+/* Heap i sbrk kullanarak genisletme islemi */
+Block *heap_genislet(size_t boyut) {
+    Block *yeni_blok ;
+    size_t toplam_boyut = yuvarla(boyut + sizeof(Block) + sizeof(Tag) ); /* Gereken boyutu hesapla */
+    
+    /* heap i genislet */
+    yeni_blok = sbrk(toplam_boyut);
+    if (yeni_blok == NULL) {        /* sbrk hatasi varsa kontrol et */
+            perror("Error in extending heap");
+            return NULL;
+    }
+    /* yeni blogu baslat */
+    yeni_blok->info.size = toplam_boyut - sizeof(Block) - sizeof(Tag);
+    yeni_blok->info.isfree = 1;
+    yeni_blok->next = NULL;
+    yeni_blok->prev = NULL;
+    
+ /* eger heapteki ilk bloksa heap_endi gunceller  */
+    if (heap_start == NULL) {
+        heap_start = yeni_blok;
+    }
+    heap_end = (Block *)((char *)yeni_blok + toplam_boyut);    
+    return yeni_blok;
+}
+
+
+/* Free listte bos bir blok bulma */
+Block *bos_blok_bul(size_t boyut) {
+    Block *current = free_list; 
+    /* Uygun bir blok bulmak icin free listi dolas */
+    while (current != NULL) {
+        if (current->info.size >= boyut) {
+            return current;
+        }
+        current = next_block_in_freelist(current);
+    }
+    return NULL;
+}
+
+
+/* Bellek ayirma islemi */
 void *mymalloc(size_t size) { 
-    return NULL; 
+    size_t yuvarlanmis_boyut = yuvarla(size); /* Boyutu 16nin en yakin katina yuvarla */
+    Block *blok;
+    
+    /* Free listte bos bir blok bul */
+    blok = bos_blok_bul(yuvarlanmis_boyut);
+    if (blok == NULL) {    /* Uygun blok yoksa heapi genisletir */
+        blok = heap_genislet(yuvarlanmis_boyut);
+        if (blok == NULL)
+            return NULL;    /* Allocation basarisiz oldu */
+    }
+    else {   /* Uygun bir blok bulunursa, gerekrse bol */
+        blok = split_block(blok, yuvarlanmis_boyut);
+    }
+    /* Blogu tahsis edilmis olarak isaretle */
+    blok->info.isfree = 0;
+    
+    return blok->data;
 }
 
-/** frees block,
- * if necessary it coalesces with negihbors,
- * adjusts the free list
- */
+
+/* Bellegi bosaltma islemi */
 void myfree(void *p) {
-
+    if (p == NULL){
+        return;     /* Eger pointer NULL ise hicbir sey yapma */
+    }
+    Block *blok = (Block *)((char *)p - sizeof(Tag) - sizeof(Block));     
+    /* Blogu bos olarak isaretle */
+    blok->info.isfree = 1;
+    
+    /* Mumkun ise komsu bloklarla birles */
+    blok = left_coalesce(blok);
+    blok = right_coalesce(blok);
 }
 
-/** splits block, by using the size(in 16 byte blocks)
- * returns the left block,
- * make necessary adjustments to the free list
- */
+
+/* Bir blogu gerekenden buyukse bolme islemi */
 Block *split_block(Block *b, size_t size) { 
-    return NULL; 
+    if (b->info.size > size + sizeof(Block) + sizeof(Tag)) {
+        Block *bolunmus_blok	= (Block *)((char *)b + size + sizeof(Block) + sizeof(Tag)); /*  BÃ¶lÃ¼nmÃ¼ÅŸ bloÄŸa iÅŸaretÃ§iyi al */
+        bolunmus_blok->info.size = b->info.size - size - sizeof(Block) - sizeof(Tag);
+        bolunmus_blok->info.isfree = 1;
+        bolunmus_blok->next = b->next;
+        bolunmus_blok->prev = b;
+        /* Orjinal blok boyutunu guncelle */
+        b->info.size = size;
+        b->next = bolunmus_blok;
+        return b;
+    }
+    else {
+        return b;
+    }
 }
 
-/** coalesce b with its left neighbor
- * returns the final block
- */
+/* Blogu sol tarafi ile birlestirme islemi */
 Block *left_coalesce(Block *b) { 
-    return NULL; 
+     if (prev_block_in_addr(b) != NULL && prev_block_in_addr(b)->info.isfree) {
+        /* Bloklari birlestir */
+        prev_block_in_addr(b)->info.size += b->info.size + sizeof(Block) + sizeof(Tag);
+        prev_block_in_addr(b)->next = b->next;
+        
+        /* Sonraki blogun prev pointerini guncelle */
+        if (b->next != NULL)
+            b->next->prev = prev_block_in_addr(b);
+        return prev_block_in_addr(b);
+    }
+    else {
+        return b;
+    }
 }
 
-/** coalesce b with its left neighbor
- * returns the final block
- */
+/* Blogu sag tarafi ile birlestirme islemi */
 Block *right_coalesce(Block *b) { 
-    return NULL; 
+    if (next_block_in_addr(b) != NULL && next_block_in_addr(b)->info.isfree) {
+        /* Bloklari birlestir */
+        b->info.size += next_block_in_addr(b)->info.size + sizeof(Block) + sizeof(Tag);
+        b->next = next_block_in_addr(b)->next;
+        
+        /* Sonraki blogun prev pointerini guncelle */
+        if (next_block_in_addr(b)->next != NULL)
+            next_block_in_addr(b)->next->prev = b;
+    }
+    return b;
 }
 
-/** for a given block returns its next block in the list*/
+/* Free listteki bir sonraki blogu al */
 Block *next_block_in_freelist(Block *b) { 
-    return NULL; 
+      if (b != NULL) {
+        return b->next;
+    } else {
+        return NULL;
+    }
 }
 
-/** for a given block returns its prev block in the list*/
+/* Free listteki bir onceki blogu al */
 Block *prev_block_in_freelist(Block *b) { 
-    return NULL; 
+     if (b != NULL) {
+        return b->prev;
+    } else {
+        return NULL;
+    }
 }
 
-/** for a given block returns its right neghbor in the address*/
+/* Memory addressteki bir sonraki blogu al */
 Block *next_block_in_addr(Block *b) { 
-    return NULL; 
+    if (b != NULL) {
+        size_t blok_boyutu = b->info.size;
+        return (Block *)((char *)b + blok_boyutu + sizeof(Tag) + sizeof(Block));
+    } else {
+        return NULL;
+    }
 }
 
-/** for a given block returns its left neghbor in the address*/
+/* Memory addressteki bir onceki blogu al */
 Block *prev_block_in_addr(Block *b) { 
-    return NULL; 
+     if (b != NULL) {
+        size_t blok_boyutu = prev_block_in_addr(b)->info.size;
+        return (Block *)((char *)b - blok_boyutu - sizeof(Tag) - sizeof(Block));
+    } else {
+        return NULL;
+    }
 }
 
-/**for a given size in bytes, returns number of 16 blocks*/
+/* Belirli bir boyut icin gereken 16 bytelik blok sayisini byte cinsinden hesaplama islevi */
 uint64_t numberof16blocks(size_t size_inbytes) { 
-    return 0; 
+    return (size_inbytes + 15) / 16; 
 }
 
 /** prints meta data of the blocks
@@ -72,21 +196,37 @@ uint64_t numberof16blocks(size_t size_inbytes) {
  * --------
  */
 void printheap() {
+    Block *current = heap_start;
+    printf("Blocks\n");
 
+    /* Tum bloklari gec*/
+    while (current != NULL && current<heap_end) {
+        printf("Free: %d\n", current->info.isfree);
+        printf("Size: %" PRIu64 "\n", current->info.size);
+        printf("---------------\n");
+        /* Bie sonraki bloga gec */
+        current = (Block *)((char *)current + current->info.size + sizeof(Block) + sizeof(Tag));  
+    }
 }
 
+/* List type i al  */
 ListType getlisttype() { 
     return listtype; 
 }
 
-int setlisttype(ListType listtype) { 
+/* List type i  ayarla */
+int setlisttype(ListType type) { 
+    listtype = type;
     return 0; 
 }
 
+/* Strategy i al */
 Strategy getstrategy() { 
     return strategy; 
 }
 
-int setstrategy(Strategy strategy) { 
+/* Strategy i ayarla */
+int setstrategy(Strategy strat) { 
+    strategy = strat;
     return 0; 
 }
