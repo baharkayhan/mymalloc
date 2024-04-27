@@ -6,7 +6,7 @@ Block *heap_genislet(size_t boyut);
 
 int main() {
     int input;
-    printf("KullanÄ±cÄ± input'u: ");
+    printf("Kullanici input'u: ");
     scanf("%d",&input);
     heap_genislet(input);
     printheap();
@@ -100,7 +100,7 @@ void myfree(void *p) {
 /* Bir blogu gerekenden buyukse bolme islemi */
 Block *split_block(Block *b, size_t size) { 
     if (b->info.size > size + sizeof(Block) + sizeof(Tag)) {
-        Block *bolunmus_blok	= (Block *)((char *)b + size + sizeof(Block) + sizeof(Tag)); /*  BÃ¶lÃ¼nmÃ¼ÅŸ bloÄŸa iÅŸaretÃ§iyi al */
+        Block *bolunmus_blok	= (Block *)((char *)b + size + sizeof(Block) + sizeof(Tag)); /* Bolunmus bloga isaretciyi al */
         bolunmus_blok->info.size = b->info.size - size - sizeof(Block) - sizeof(Tag);
         bolunmus_blok->info.isfree = 1;
         bolunmus_blok->next = b->next;
