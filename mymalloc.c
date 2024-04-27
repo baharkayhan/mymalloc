@@ -1,3 +1,10 @@
+/* 
+ * File: mymalloc.c
+ * Authors: Bahar Kayhan, Beyza Nur Caglar
+ * Date: 28 Nisan 2024
+ * Description: Bu dosya bir memory allocation ornegidir. 
+ */
+
 #include "mymalloc.h"
 #include <stdio.h>
 #include <unistd.h>
