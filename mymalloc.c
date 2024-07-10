@@ -1,6 +1,6 @@
 /* 
  * File: mymalloc.c
- * Authors: Bahar Kayhan, Beyza Nur Caglar
+ * Author: baharkayhan
  * Date: 28 Nisan 2024
  * Description: Bu dosya bir memory allocation ornegidir. 
  */
